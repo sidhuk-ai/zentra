@@ -1,31 +1,74 @@
-# shadcn/ui monorepo template
+# 🧠 Zentra — B2B AI SaaS Support Platform
 
-This template is for creating a monorepo with shadcn/ui.
+Zentra is a modular, scalable AI-powered support platform designed for B2B SaaS companies. Built with a modern monorepo architecture, it streamlines customer support workflows using intelligent automation, real-time error tracking, and seamless authentication.
 
-## Usage
+## 🚀 Features
 
-```bash
-pnpm dlx shadcn@latest init
+- 🤖 AI-driven support automation for faster resolution
+- 🔐 Secure authentication via Clerk and Convex
+- 📦 Monorepo structure powered by TurboRepo
+- 📊 Real-time error monitoring with Sentry
+- 🎨 Shared UI components using `shadcn/ui`
+- 💨 TailwindCSS integration for rapid styling
+- 🧩 Modular architecture for apps and packages
+
+## 🏗️ Tech Stack
+
+| Layer         | Technology                     |
+|--------------|---------------------------------|
+| Frontend     | React, TailwindCSS, shadcn/ui   |
+| Backend      | Convex, Clerk                   |
+| Monitoring   | Sentry                          |
+| Tooling      | TurboRepo, pnpm, ESLint         |
+| Language     | TypeScript                      |
+
+## 📁 Monorepo Structure
+```
+zentra/
+├── apps/                  # Application layer
+│   └── web/               # Main frontend app (React + TailwindCSS)
+├── packages/              # Shared packages
+│   └── ui/                # Reusable UI components (shadcn/ui)
+├── .vscode/               # Editor configuration
+├── .eslintrc.js           # Linting rules
+├── pnpm-workspace.yaml    # Workspace config for pnpm
+├── turbo.json             # TurboRepo pipeline config
+└── README.md              # Project overview
 ```
 
-## Adding components
+## 🛠️ Getting Started
 
-To add components to your app, run the following command at the root of your `web` app:
+### Prerequisites
+
+- Node.js ≥ 18.x
+- pnpm ≥ 8.x
+
+### Installation
+
+```bash
+pnpm install
+```
+
+### Running the App
+
+```bash
+pnpm dev
+```
+
+### Adding UI Components
 
 ```bash
 pnpm dlx shadcn@latest add button -c apps/web
 ```
 
-This will place the ui components in the `packages/ui/src/components` directory.
+## 📉 Error Monitoring
 
-## Tailwind
+Sentry is integrated across the app for real-time error tracking. Configure your DSN in the environment variables.
 
-Your `tailwind.config.ts` and `globals.css` are already set up to use the components from the `ui` package.
+## 📦 Package Management
 
-## Using components
+This repo uses pnpm with workspace support. All dependencies are managed centrally.
 
-To use the components in your app, import them from the `ui` package.
+## 🤝 Contributing
 
-```tsx
-import { Button } from "@workspace/ui/components/button"
-```
+We welcome contributions! Please follow the conventional commit format and open a PR with a clear description.
