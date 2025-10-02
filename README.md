@@ -14,7 +14,7 @@ Zentra is a modular, scalable AI-powered support platform designed for B2B SaaS 
 
 ## 🏗️ Tech Stack
 
-| Layer         | Technology                     |
+| Layer        | Technology                      |
 |--------------|---------------------------------|
 | Frontend     | React, TailwindCSS, shadcn/ui   |
 | Backend      | Convex, Clerk                   |
@@ -58,7 +58,7 @@ pnpm dev
 ### Adding UI Components
 
 ```bash
-pnpm dlx shadcn@latest add button -c apps/web
+pnpm dlx shadcn@latest add button
 ```
 
 ## 📉 Error Monitoring
