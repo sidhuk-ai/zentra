@@ -81,10 +81,10 @@ export const DashsboardSidebar = () => {
                 appearance={{
                   elements: {
                     rootBox: "w-full! h-8!",
-                    avatarBox: "size-4! rounded-sm!",
-                    organizationSwitcherTrigger: "w-full! justify-start! group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:bg-sidebar-accent!",
+                    avatarBox: "size-5! rounded-sm!",
+                    organizationSwitcherTrigger: "w-full! justify-start! group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:bg-accent-foreground/90! bg-accent-foreground!",
                     organizationPreview: "group-data-[collapsible=icon]:justify-center! gap-2!",
-                    organizationPreviewTextContainer: "group-data-[collapsible=icon]:hidden! text-xs! font-medium! text-sidebar-foreground!",
+                    organizationPreviewTextContainer: "group-data-[collapsible=icon]:hidden! text-xs! font-medium! text-sidebar!",
                     organizationSwitcherTriggerIcon: "group-data-[collapsible=icon]:hidden! ml-auto! text-sidebar-foreground!"
                   }
                 }}
@@ -172,7 +172,7 @@ export const DashsboardSidebar = () => {
                   userButtonTrigger: "w-full! p-2! hover:bg-sidebar-accent! hover:text-sidebar-accent-foreground! group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2!",
                   userButtonBox: "w-full! flex-row-reverse! justify-end! gap-2! group-data-[collapsible=icon]:justify-center! text-sidebar-accent-foreground!",
                   userButtonOuterIdentifier: "pl-0! group-data-[collapsible=icon]:hidden!",
-                  avatarBox: "size-4!"
+                  avatarBox: "size-5!"
                 }
               }}
             />
