@@ -10,9 +10,9 @@ import {
   ChevronRight,
   AlertTriangleIcon,
   LoaderIcon,
+  MessageSquareText,
 } from "lucide-react";
 import { cn } from "@workspace/ui/lib/utils";
-import { Badge } from "@workspace/ui/components/badge";
 import z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,15 +28,19 @@ import { Input } from "@workspace/ui/components/input";
 import { Button } from "@workspace/ui/components/button";
 import { useAction, useMutation } from "convex/react";
 import { api } from "@workspace/backend/_generated/api";
-import { Doc, Id } from "@workspace/backend/_generated/dataModel";
+import { Doc } from "@workspace/backend/_generated/dataModel";
 import { useAtomValue, useSetAtom } from "jotai";
 import {
   contactSessionIdAtomFamily,
+  conversationIdAtom,
   errorMessageAtom,
   loadingMessageAtom,
   organizationIdAtom,
   screenAtom,
 } from "@/modules/widgets/atoms/widget-atoms";
+import { WidgetChatScreen } from "@/modules/widgets/screens/widget-chat-screen";
+import { GreetingsHeader } from "./greetings-header";
+import { NavigationHeader } from "./navigation-header";
 
 type Tab = "home" | "inbox";
 type InitStep = "org" | "session" | "settings" | "vapi" | "done";
@@ -46,8 +50,6 @@ const formSchema = z.object({
 });
 
 export function ChatbotWidget({
-  greeting = "Hi there 👋",
-  subtitle = "How can we help today?",
   className,
   organizationId,
 }: {
@@ -65,7 +67,7 @@ export function ChatbotWidget({
     voice: <p>TODO</p>,
     inbox: <InboxView />,
     selection: <HomeView />,
-    chat: <p>TODO</p>,
+    chat: <WidgetChatScreen />,
     contact: <p>TODO</p>,
   };
 
@@ -87,27 +89,11 @@ export function ChatbotWidget({
           "flex items-center justify-between"
         )}
       >
-        <div className="min-w-0">
-          <h2 className="text-pretty text-xl font-semibold leading-tight">
-            {greeting}
-          </h2>
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium",
-              "text-secondary-foreground border-border"
-            )}
-            aria-live="polite"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-2 w-2 rounded-full bg-primary-foreground opacity-75 animate-pulse" />
-              {/* <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-foreground" /> */}
-            </span>
-            Online
-          </Badge>
-        </div>
+        {screen === "chat" || screen === "voice" || screen === "contact" ? (
+          <NavigationHeader />
+        ) : (
+          <GreetingsHeader />
+        )}
       </header>
 
       {/* Body */}
@@ -358,7 +344,13 @@ function LoadingScreen({ organizationId }: { organizationId: string }) {
         setSessionValid(false);
         setStep("done");
       });
-  }, [step, contactSessionId, setLoadingMsg, validateContactSession, setSessionValid]);
+  }, [
+    step,
+    contactSessionId,
+    setLoadingMsg,
+    validateContactSession,
+    setSessionValid,
+  ]);
 
   React.useEffect(() => {
     if (step !== "done") return;
@@ -376,6 +368,45 @@ function LoadingScreen({ organizationId }: { organizationId: string }) {
 }
 
 function HomeView() {
+  const organizationId = useAtomValue(organizationIdAtom);
+  const contactSessionId = useAtomValue(
+    contactSessionIdAtomFamily(organizationId || "")
+  );
+  const setScreen = useSetAtom(screenAtom);
+  const setConversationId = useSetAtom(conversationIdAtom);
+  const setErrorMsg = useSetAtom(errorMessageAtom);
+
+  const createConversations = useMutation(api.public.conversations.create);
+
+  const [isPending, setIsPending] = React.useState<boolean>(false);
+
+  const habdleNewConversations = async () => {
+    if (!organizationId) {
+      setErrorMsg("Missing organization ID");
+      setScreen("error");
+      return;
+    }
+
+    if (!contactSessionId) {
+      setScreen("auth");
+      return;
+    }
+
+    setIsPending(true);
+    try {
+      const conversationId = await createConversations({
+        organizationId,
+        contactSessionId,
+      });
+
+      setConversationId(conversationId);
+      setScreen("chat");
+    } catch (error) {
+      setScreen("auth");
+    } finally {
+      setIsPending(false);
+    }
+  };
   return (
     <div
       id="panel-home"
@@ -385,13 +416,11 @@ function HomeView() {
     >
       <div className="space-y-3">
         <ActionButton
-          icon={<MessageSquare className="h-5 w-5" aria-hidden="true" />}
+          icon={<MessageSquareText className="h-5 w-5" aria-hidden="true" />}
           label="Start Chat"
           description="Connect with our AI assistant instantly"
-          onClick={() => {
-            // placeholder action
-            console.log("Start Chat clicked");
-          }}
+          onClick={habdleNewConversations}
+          disabled={isPending}
         />
         <ActionButton
           icon={<Mic className="h-5 w-5" aria-hidden="true" />}
@@ -452,11 +481,13 @@ function ActionButton({
   label,
   description,
   onClick,
+  disabled,
 }: {
   icon: React.ReactNode;
   label: string;
   description?: string;
   onClick?: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -469,6 +500,7 @@ function ActionButton({
         "focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       )}
       aria-label={label}
+      disabled={disabled}
     >
       <div className="flex items-center gap-3">
         <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card">
