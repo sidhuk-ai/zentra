@@ -27,8 +27,10 @@ Zentra is a modular, scalable AI-powered support platform designed for B2B SaaS 
 zentra/
 ├── apps/                  # Application layer
 │   └── web/               # Main frontend app (React + TailwindCSS)
+│   └── widgets/           # Widget-based UI components
 ├── packages/              # Shared packages
 │   └── ui/                # Reusable UI components (shadcn/ui)
+│   └── backend/           # API logic and server-side mutations
 ├── .vscode/               # Editor configuration
 ├── .eslintrc.js           # Linting rules
 ├── pnpm-workspace.yaml    # Workspace config for pnpm
