@@ -8,6 +8,8 @@ import {
   PhoneCall,
   Mic,
   ChevronRight,
+  AlertTriangleIcon,
+  LoaderIcon,
 } from "lucide-react";
 import { cn } from "@workspace/ui/lib/utils";
 import { Badge } from "@workspace/ui/components/badge";
@@ -24,13 +26,20 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { Button } from "@workspace/ui/components/button";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "@workspace/backend/_generated/api";
-import { Doc } from "@workspace/backend/_generated/dataModel";
-import { useAtomValue } from "jotai";
-import { screenAtom } from "@/modules/widgets/atoms/widget-atoms";
+import { Doc, Id } from "@workspace/backend/_generated/dataModel";
+import { useAtomValue, useSetAtom } from "jotai";
+import {
+  contactSessionIdAtomFamily,
+  errorMessageAtom,
+  loadingMessageAtom,
+  organizationIdAtom,
+  screenAtom,
+} from "@/modules/widgets/atoms/widget-atoms";
 
 type Tab = "home" | "inbox";
+type InitStep = "org" | "session" | "settings" | "vapi" | "done";
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
@@ -50,12 +59,12 @@ export function ChatbotWidget({
   const [active, setActive] = React.useState<Tab>("home");
   const screen = useAtomValue(screenAtom);
   const screenComponents = {
-    error: <p>TODO</p>,
-    loading: <p>TODO</p>,
+    error: <ErrorScreen />,
+    loading: <LoadingScreen organizationId={organizationId} />,
     auth: <AuthScreen />,
     voice: <p>TODO</p>,
-    inbox: <p>TODO</p>,
-    selection: <p>TODO</p>,
+    inbox: <InboxView />,
+    selection: <HomeView />,
     chat: <p>TODO</p>,
     contact: <p>TODO</p>,
   };
@@ -102,7 +111,7 @@ export function ChatbotWidget({
       </header>
 
       {/* Body */}
-      <main className="min-h-48 flex-1 bg-card">
+      <main className="min-h-48 flex-1 bg-card flex items-center justify-center">
         {screenComponents[screen]}
       </main>
 
@@ -115,13 +124,13 @@ export function ChatbotWidget({
         <TabButton
           icon={<Home className="h-4 w-4" aria-hidden="true" />}
           label="Home"
-          selected={active === "home"}
+          selected={screen === "selection"}
           onClick={() => setActive("home")}
         />
         <TabButton
           icon={<Inbox className="h-4 w-4" aria-hidden="true" />}
           label="Inbox"
-          selected={active === "inbox"}
+          selected={screen === "inbox"}
           onClick={() => setActive("inbox")}
         />
       </nav>
@@ -170,7 +179,10 @@ function TabButton({
 }
 
 function AuthScreen() {
-  const organizationId = "1234";
+  const organizationId = useAtomValue(organizationIdAtom);
+  const setContactSessionId = useSetAtom(
+    contactSessionIdAtomFamily(organizationId || "")
+  );
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -204,58 +216,161 @@ function AuthScreen() {
       metadata,
     });
     console.log(contactSessionId);
+    setContactSessionId(contactSessionId);
     console.log(values);
   };
   return (
     <div className="p-4 space-y-4 w-full">
-    <Form {...form}>
-      <form className="space-y-3" onSubmit={form.handleSubmit(onSubmit)}>
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input
-                  className="h-10 bg-background"
-                  placeholder="John Doe"
-                  type="text"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="name@example.com"
-                  className="h-10 bg-background"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button
-          disabled={form.formState.isSubmitting}
-          size={"lg"}
-          type="submit"
-          className="block w-full cursor-pointer"
-        >
-          Continue
-        </Button>
-      </form>
-    </Form>
+      <Form {...form}>
+        <form className="space-y-3" onSubmit={form.handleSubmit(onSubmit)}>
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input
+                    className="h-10 bg-background"
+                    placeholder="John Doe"
+                    type="text"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="name@example.com"
+                    className="h-10 bg-background"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button
+            disabled={form.formState.isSubmitting}
+            size={"lg"}
+            type="submit"
+            className="block w-full cursor-pointer"
+          >
+            Continue
+          </Button>
+        </form>
+      </Form>
+    </div>
+  );
+}
+
+function ErrorScreen() {
+  const errorMsg = useAtomValue(errorMessageAtom);
+
+  return (
+    <div className="flex flex-col flex-1 gap-y-4 p-4 items-center justify-center text-muted-foreground">
+      <AlertTriangleIcon />
+      <p className="text-sm">{errorMsg || "Invalid Configuration"}</p>
+    </div>
+  );
+}
+
+function LoadingScreen({ organizationId }: { organizationId: string }) {
+  const [step, setStep] = React.useState<InitStep>("org");
+  const [sessionValid, setSessionValid] = React.useState<boolean>(false);
+  const setErrorMessage = useSetAtom(errorMessageAtom);
+  const loadingMsg = useAtomValue(loadingMessageAtom);
+  const setLoadingMsg = useSetAtom(loadingMessageAtom);
+  const setScreen = useSetAtom(screenAtom);
+  const setOrganizationId = useSetAtom(organizationIdAtom);
+  const contactSessionId = useAtomValue(
+    contactSessionIdAtomFamily(organizationId)
+  );
+
+  // Step 1: Validating organizationn
+  const validateOrganization = useAction(api.public.organization.validate);
+  React.useEffect(() => {
+    if (step !== "org") return;
+
+    setLoadingMsg("Loading organization details...");
+    if (!organizationId) {
+      setErrorMessage("Organization ID is required");
+      setScreen("error");
+    }
+    setLoadingMsg("Verifying organization...");
+
+    validateOrganization({ organizationId })
+      .then((result) => {
+        if (result.valid) {
+          setOrganizationId(organizationId);
+          setStep("session");
+        } else {
+          setErrorMessage(result.reason || "Invalid configuration");
+          setScreen("error");
+        }
+      })
+      .catch(() => {
+        setErrorMessage("Unable to verify organization");
+        setScreen("error");
+      });
+  }, [
+    step,
+    organizationId,
+    setErrorMessage,
+    setScreen,
+    setLoadingMsg,
+    validateOrganization,
+    setOrganizationId,
+    setStep,
+  ]);
+
+  // Step 2: validating session (agar exist karta hai toh)
+  const validateContactSession = useMutation(
+    api.public.contactSession.validate
+  );
+  React.useEffect(() => {
+    if (step !== "session") return;
+
+    setLoadingMsg("Finding contact session ID...");
+
+    if (!contactSessionId) {
+      setSessionValid(false);
+      setStep("done");
+      return;
+    }
+
+    setLoadingMsg("Validating session...");
+    validateContactSession({ contactSessionId })
+      .then((result) => {
+        setSessionValid(result.valid);
+        setStep("done");
+      })
+      .catch(() => {
+        setSessionValid(false);
+        setStep("done");
+      });
+  }, [step, contactSessionId, setLoadingMsg, validateContactSession, setSessionValid]);
+
+  React.useEffect(() => {
+    if (step !== "done") return;
+
+    const hasSessionId = contactSessionId && sessionValid;
+    setScreen(hasSessionId ? "selection" : "auth");
+  }, [step, contactSessionId, sessionValid, setScreen]);
+
+  return (
+    <div className="flex flex-col flex-1 gap-y-4 p-4 items-center justify-center text-muted-foreground">
+      <LoaderIcon className="animate-spin" />
+      <p className="text-sm">{loadingMsg || "Loading..."}</p>
     </div>
   );
 }
@@ -307,7 +422,7 @@ function InboxView() {
       aria-labelledby="Inbox"
       className="p-4"
     >
-      <div className="flex h-40 flex-col items-center justify-center rounded-xl border border-border bg-card/50">
+      <div className="flex h-40 flex-col items-center justify-center rounded-xl">
         <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card">
           <Inbox className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
         </div>
