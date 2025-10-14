@@ -4,8 +4,21 @@ import * as React from "react"
 import { Home, Inbox, MessageSquare, PhoneCall, Mic, ChevronRight } from "lucide-react"
 import { cn } from "@workspace/ui/lib/utils"
 import { Badge } from "@workspace/ui/components/badge"
+import z from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@workspace/ui/components/form"
+import { Input } from "@workspace/ui/components/input"
+import { Button } from "@workspace/ui/components/button"
+import { useMutation } from "convex/react"
+import { api } from "@workspace/backend/_generated/api"
+import { Doc } from "@workspace/backend/_generated/dataModel"
 
 type Tab = "home" | "inbox"
+const formSchema = z.object({
+  name: z.string().min(1,"Name is required"),
+  email: z.string().email("Invalid email address")
+})
 
 export function ChatbotWidget({
   greeting = "Hi there 👋",
@@ -119,8 +132,100 @@ function TabButton({
 }
 
 function HomeView() {
+  const organizationId = "1234";
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      email: ""
+    }
+  });
+  const createContactSession = useMutation(api.public.contactSession.create);
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if(!organizationId) return;
+
+    const metadata: Doc<"contactSession">["metadata"] = {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      languages: navigator.languages.join(","),
+      platform: navigator.platform,
+      vendor: navigator.vendor,
+      screenResolution: `${screen.width}X${screen.height}`,
+      viewportSize: `${window.innerWidth}X${window.innerHeight}`,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezoneOffset: new Date().getTimezoneOffset(),
+      cookieEnabled: navigator.cookieEnabled,
+      referrer: document.referrer || "direct",
+      currentUrl: window.location.href
+    }
+
+    const contactSessionId = await createContactSession({
+      ...values,
+      organizationId,
+      metadata
+    });
+    console.log(contactSessionId);
+    console.log(values);
+  }
+
+
   return (
-    <div id="panel-home" role="tabpanel" aria-labelledby="Home" className="p-4 w-full">
+    <div id="panel-home" role="tabpanel" aria-labelledby="Home" className="p-4 space-y-4 w-full">
+      <div className="space-y-3">
+        <Form {...form}>
+          <form className="space-y-3" onSubmit={form.handleSubmit(onSubmit)}>
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Name
+                  </FormLabel>
+                  <FormControl>
+                    <Input 
+                      className="h-10 bg-background"
+                      placeholder="John Doe"
+                      type="text"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField 
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Email
+                  </FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="email"
+                      placeholder="name@example.com"
+                      className="h-10 bg-background"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button 
+              disabled={form.formState.isSubmitting} 
+              size={"lg"} 
+              type="submit" 
+              className="block w-full cursor-pointer"
+            >
+              Continue
+            </Button>
+          </form>
+        </Form>
+      </div>
       <div className="space-y-3">
         <ActionButton
           icon={<MessageSquare className="h-5 w-5" aria-hidden="true" />}
@@ -128,7 +233,7 @@ function HomeView() {
           description="Connect with our AI assistant instantly"
           onClick={() => {
             // placeholder action
-            console.log("[v0] Start Chat clicked")
+            console.log("Start Chat clicked")
           }}
         />
         <ActionButton
@@ -136,7 +241,7 @@ function HomeView() {
           label="Start Voice Call"
           description="Speak to our AI for faster resolution"
           onClick={() => {
-            console.log("[v0] Start Voice Call clicked")
+            console.log("Start Voice Call clicked")
           }}
         />
         <ActionButton
@@ -144,7 +249,7 @@ function HomeView() {
           label="Call Us"
           description="Reach our support team by phone"
           onClick={() => {
-            console.log("[v0] Call Us clicked")
+            console.log("Call Us clicked")
           }}
         />
       </div>
@@ -163,7 +268,7 @@ function InboxView() {
         <p className="text-xs text-muted-foreground">When you start a chat, it will appear here.</p>
         <button
           type="button"
-          onClick={() => console.log("[v0] Inbox CTA clicked")}
+          onClick={() => console.log("Inbox CTA clicked")}
           className={cn(
             "mt-3 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium",
             "transition-all hover:bg-accent/60",
