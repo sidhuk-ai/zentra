@@ -30,6 +30,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormField } from "@workspace/ui/components/form";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
+import { useInfiniteScroll } from "@workspace/ui/hooks/use-infinite-scroll"
+import { InfinteScrollTrigger } from "@workspace/ui/components/infinte-scroll-trigger";
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
@@ -59,6 +61,12 @@ export function WidgetChatScreen() {
     { initialNumItems: 10 }
   );
 
+  const { topElementRef, isLoadingMore, canLoadMore, handleLoadMore } = useInfiniteScroll({
+    status: messages.status,
+    loadMore: messages.loadMore,
+    loadSize: 10
+  })
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -83,6 +91,12 @@ export function WidgetChatScreen() {
       <ScrollArea className="flex-1 p-3">
         <Conversation>
           <ConversationContent>
+            <InfinteScrollTrigger
+              canLoadMore={canLoadMore}
+              isLoadingMore={isLoadingMore}
+              onLoadMore={handleLoadMore}
+              ref={topElementRef}
+            />
             {toUIMessages(messages.results ?? []).map((message) => (
               <Message
                 from={message.role === "user" ? "user" : "assistant"}
