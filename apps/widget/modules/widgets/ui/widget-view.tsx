@@ -76,7 +76,7 @@ export function ChatbotWidget({
       aria-label="AI Support Chatbot Widget"
       className={cn(
         // container
-        "w-full max-w-md rounded-2xl border border-border bg-card text-card-foreground shadow-lg",
+        "w-full min-h-svh max-w-screen rounded-2xl border border-border bg-card text-card-foreground shadow-lg",
         "flex flex-col overflow-hidden",
         className
       )}
