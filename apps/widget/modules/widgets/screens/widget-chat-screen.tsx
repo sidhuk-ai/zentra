@@ -32,6 +32,7 @@ import { Form, FormField } from "@workspace/ui/components/form";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { useInfiniteScroll } from "@workspace/ui/hooks/use-infinite-scroll"
 import { InfinteScrollTrigger } from "@workspace/ui/components/infinte-scroll-trigger";
+import { DiceBearAvatar } from "@workspace/ui/components/dicebear-avatar";
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
@@ -105,6 +106,14 @@ export function WidgetChatScreen() {
                 <MessageContent>
                   <Response>{message.text}</Response>
                 </MessageContent>
+                {message.role === "assistant" && 
+                  <DiceBearAvatar
+                    imageUrl="/logo-light.svg"
+                    className="p-0.5"
+                    seed="assistant"
+                    size={34}
+                  />
+                }
               </Message>
             ))}
           </ConversationContent>
