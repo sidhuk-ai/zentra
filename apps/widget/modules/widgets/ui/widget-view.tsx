@@ -26,7 +26,7 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { Button } from "@workspace/ui/components/button";
-import { useAction, useMutation } from "convex/react";
+import { useAction, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@workspace/backend/_generated/api";
 import { Doc } from "@workspace/backend/_generated/dataModel";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -41,8 +41,11 @@ import {
 import { WidgetChatScreen } from "@/modules/widgets/screens/widget-chat-screen";
 import { GreetingsHeader } from "./greetings-header";
 import { NavigationHeader } from "./navigation-header";
+import { formatDistanceToNow } from "date-fns";
+import { StatusIcon } from "@workspace/ui/components/status-icon";
+import { useInfiniteScroll } from "@workspace/ui/hooks/use-infinite-scroll";
+import { InfinteScrollTrigger } from "@workspace/ui/components/infinte-scroll-trigger";
 
-type Tab = "home" | "inbox";
 type InitStep = "org" | "session" | "settings" | "vapi" | "done";
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -58,8 +61,8 @@ export function ChatbotWidget({
   className?: string;
   organizationId: string;
 }) {
-  const [active, setActive] = React.useState<Tab>("home");
   const screen = useAtomValue(screenAtom);
+  const setScreen = useSetAtom(screenAtom);
   const screenComponents = {
     error: <ErrorScreen />,
     loading: <LoadingScreen organizationId={organizationId} />,
@@ -111,13 +114,13 @@ export function ChatbotWidget({
           icon={<Home className="h-4 w-4" aria-hidden="true" />}
           label="Home"
           selected={screen === "selection"}
-          onClick={() => setActive("home")}
+          onClick={() => setScreen("selection")}
         />
         <TabButton
           icon={<Inbox className="h-4 w-4" aria-hidden="true" />}
           label="Inbox"
           selected={screen === "inbox"}
-          onClick={() => setActive("inbox")}
+          onClick={() => setScreen("inbox")}
         />
       </nav>
     </section>
@@ -444,34 +447,86 @@ function HomeView() {
 }
 
 function InboxView() {
+  const organizationId = useAtomValue(organizationIdAtom);
+  const setScreen = useSetAtom(screenAtom);
+  const setConversationId = useSetAtom(conversationIdAtom);
+  const contactSessionId = useAtomValue(
+    contactSessionIdAtomFamily(organizationId || "")
+  );
+  const conversations = usePaginatedQuery(
+    api.public.conversations.getMany,
+    contactSessionId ? { contactSessionId } : "skip",
+    { initialNumItems: 10 }
+  );
+
+  const { topElementRef, handleLoadMore, canLoadMore, isLoadingMore } =
+    useInfiniteScroll({
+      status: conversations.status,
+      loadMore: conversations.loadMore,
+      loadSize: 10
+    });
   return (
     <div
       id="panel-inbox"
       role="tabpanel"
       aria-labelledby="Inbox"
-      className="p-4"
+      className="p-4 w-full"
     >
-      <div className="flex h-40 flex-col items-center justify-center rounded-xl">
-        <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card">
-          <Inbox className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+      {conversations.results.length === 0 && (
+        <div className="flex h-40 flex-col items-center justify-center rounded-xl">
+          <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card">
+            <Inbox
+              className="h-5 w-5 text-muted-foreground"
+              aria-hidden="true"
+            />
+          </div>
+          <p className="text-sm font-medium">No new messages</p>
+          <p className="text-xs text-muted-foreground">
+            When you start a chat, it will appear here.
+          </p>
         </div>
-        <p className="text-sm font-medium">No new messages</p>
-        <p className="text-xs text-muted-foreground">
-          When you start a chat, it will appear here.
-        </p>
-        <button
-          type="button"
-          onClick={() => console.log("Inbox CTA clicked")}
-          className={cn(
-            "mt-3 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium",
-            "transition-all hover:bg-accent/60"
-          )}
-          aria-label="Start a new conversation"
-        >
-          <MessageSquare className="h-4 w-4" aria-hidden="true" />
-          New conversation
-        </button>
-      </div>
+      )}
+      {
+        <>
+          <div className="flex flex-1 flex-col w-full space-y-2 p-4 overflow-y-auto">
+            {conversations?.results.length > 0 &&
+              conversations?.results.map((conversation) => (
+                <Button
+                  className="h-20 w-full justify-between cursor-pointer"
+                  key={conversation._id}
+                  onClick={() => {
+                    setConversationId(conversation._id);
+                    setScreen("chat");
+                  }}
+                  variant={"outline"}
+                >
+                  <div className="flex w-full flex-col gap-4 overflow-hidden text-start">
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">Chat</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(
+                          new Date(conversation.creationTime)
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex w-full items-center justify-between gap-x-2">
+                      <p className="truncate text-sm">
+                        {conversation.lastMessage?.text}
+                      </p>
+                      <StatusIcon status={conversation.status} />
+                    </div>
+                  </div>
+                </Button>
+              ))}
+          </div>
+          <InfinteScrollTrigger
+            ref={topElementRef}
+            canLoadMore={canLoadMore}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={handleLoadMore}
+          />
+        </>
+      }
     </div>
   );
 }
@@ -516,7 +571,7 @@ function ActionButton({
         </div>
       </div>
       <span className="opacity-0 group-hover:opacity-100 group-hover:transition-all group-hover:duration-300 group-hover:translate-x-1">
-        <ChevronRight className="text-muted-foreground" />
+        <ChevronRight className="text-muted-foreground size-5" />
       </span>
     </button>
   );
