@@ -32,7 +32,7 @@ export const DiceBearAvatar = ({
     }).toDataUri();
 
     return avatar;
-  }, [seed, size]);
+  }, [seed, size, imageUrl]);
 
   const badgeSize = Math.round(size * 0.5);
 
