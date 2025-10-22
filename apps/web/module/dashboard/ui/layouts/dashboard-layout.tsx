@@ -3,6 +3,7 @@ import { OrganizationGaurd } from "@/module/auth/ui/components/organization-gaur
 import { SidebarProvider } from "@workspace/ui/components/sidebar"
 import { cookies } from "next/headers";
 import { DashsboardSidebar } from "@/module/dashboard/ui/components/dashboard-sidebar";
+import { Provider } from "jotai";
 
 export async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const cookieStore = await cookies();
@@ -10,12 +11,14 @@ export async function DashboardLayout({ children }: { children: React.ReactNode 
     return (
         <AuthGuard>
             <OrganizationGaurd>
-                <SidebarProvider defaultOpen={defaultValue}>
-                    <DashsboardSidebar />
-                    <main className="flex flex-1 flex-col">
-                        {children}
-                    </main>
-                </SidebarProvider>
+                <Provider>
+                    <SidebarProvider defaultOpen={defaultValue}>
+                        <DashsboardSidebar />
+                        <main className="flex flex-1 flex-col overflow-auto">
+                            {children}
+                        </main>
+                    </SidebarProvider>
+                </Provider>
             </OrganizationGaurd>
         </AuthGuard>
     );
