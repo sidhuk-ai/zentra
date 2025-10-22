@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   Home,
   Inbox,
-  MessageSquare,
   PhoneCall,
   Mic,
   ChevronRight,
@@ -45,6 +44,7 @@ import { formatDistanceToNow } from "date-fns";
 import { StatusIcon } from "@workspace/ui/components/status-icon";
 import { useInfiniteScroll } from "@workspace/ui/hooks/use-infinite-scroll";
 import { InfinteScrollTrigger } from "@workspace/ui/components/infinte-scroll-trigger";
+import { LoadingSkeleton, WidgetViewLoadingSkeleton } from "@workspace/ui/components/loading-skeleton";
 
 type InitStep = "org" | "session" | "settings" | "vapi" | "done";
 const formSchema = z.object({
@@ -459,12 +459,17 @@ function InboxView() {
     { initialNumItems: 10 }
   );
 
-  const { topElementRef, handleLoadMore, canLoadMore, isLoadingMore } =
-    useInfiniteScroll({
-      status: conversations.status,
-      loadMore: conversations.loadMore,
-      loadSize: 10
-    });
+  const {
+    topElementRef,
+    handleLoadMore,
+    canLoadMore,
+    isLoadingMore,
+    isLoadingFirstPage,
+  } = useInfiniteScroll({
+    status: conversations.status,
+    loadMore: conversations.loadMore,
+    loadSize: 10,
+  });
   return (
     <div
       id="panel-inbox"
@@ -472,24 +477,25 @@ function InboxView() {
       aria-labelledby="Inbox"
       className="p-4 w-full"
     >
-      {conversations.results.length === 0 && (
-        <div className="flex h-40 flex-col items-center justify-center rounded-xl">
-          <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card">
-            <Inbox
-              className="h-5 w-5 text-muted-foreground"
-              aria-hidden="true"
-            />
-          </div>
-          <p className="text-sm font-medium">No new messages</p>
-          <p className="text-xs text-muted-foreground">
-            When you start a chat, it will appear here.
-          </p>
-        </div>
-      )}
-      {
+      {isLoadingFirstPage ? (
+        <WidgetViewLoadingSkeleton />
+      ) : (
         <>
           <div className="flex flex-1 flex-col w-full space-y-2 p-4 overflow-y-auto">
-            {conversations?.results.length > 0 &&
+            {conversations?.results.length === 0 ? (
+              <div className="flex h-40 flex-col items-center justify-center rounded-xl">
+                <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card">
+                  <Inbox
+                    className="h-5 w-5 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                </div>
+                <p className="text-sm font-medium">No new messages</p>
+                <p className="text-xs text-muted-foreground">
+                  When you start a chat, it will appear here.
+                </p>
+              </div>
+            ) : (
               conversations?.results.map((conversation) => (
                 <Button
                   className="h-20 w-full justify-between cursor-pointer"
@@ -517,7 +523,8 @@ function InboxView() {
                     </div>
                   </div>
                 </Button>
-              ))}
+              ))
+            )}
           </div>
           <InfinteScrollTrigger
             ref={topElementRef}
@@ -526,7 +533,7 @@ function InboxView() {
             onLoadMore={handleLoadMore}
           />
         </>
-      }
+      )}
     </div>
   );
 }
