@@ -5,7 +5,7 @@ export const EmptyConversationView = () => {
         <div className="w-full h-full flex items-center justify-center">
             <div className="flex items-center justify-center gap-2">
                 <Image alt="Logo" src={"/logo-light.svg"} width={50} height={50} />
-                <p className="text-3xl">Zentra</p>
+                <p className="text-4xl font-bold">Zentra</p>
             </div>
         </div>
     )
