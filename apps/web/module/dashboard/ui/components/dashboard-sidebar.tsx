@@ -14,8 +14,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@workspace/ui/components/sidebar";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
+import {
+  ChevronsUpDown,
   CreditCardIcon,
   InboxIcon,
   LayoutDashboardIcon,
@@ -28,6 +39,7 @@ import { usePathname } from "next/navigation";
 
 export const DashsboardSidebar = () => {
   const pathname = usePathname();
+  const { isMobile } = useSidebar();
   const isActive = (url: string): boolean => {
     if (url === "/") {
       return pathname === "/";
@@ -168,11 +180,30 @@ export const DashsboardSidebar = () => {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          <SidebarMenuItem className="bg-background group-data-[collapsible=icon]:bg-transparent p-2 rounded-md">
-            <div className="flex items-center justify-between group-data-[collapsible=icon]:justify-center">
-              <p className="text-sm truncate group-data-[collapsible=icon]:hidden text-muted-foreground">Theme</p>
-              <ThemeToggle />
-            </div>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                  <PaletteIcon className="text-muted-foreground" />
+                  <p className="text-sm truncate group-data-[collapsible=icon]:hidden text-muted-foreground">
+                    Theme
+                  </p>
+                  <ChevronsUpDown className="text-muted-foreground ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg border-border"
+                side={isMobile ? "bottom" : "right"}
+                align="end"
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                    <ThemeToggle />
+                  </div>
+                </DropdownMenuLabel>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <UserButton
