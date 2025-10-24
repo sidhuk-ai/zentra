@@ -99,7 +99,7 @@ export const updateStatus = mutation({
             })
         }
 
-        await ctx.db.patch(conversation._id,{
+        await ctx.db.patch(args.conversationId,{
             status: args.status
         });
     }

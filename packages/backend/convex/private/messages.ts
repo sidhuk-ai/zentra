@@ -1,9 +1,12 @@
 import { ConvexError, v } from "convex/values";
 import { action, mutation, query } from "../_generated/server";
-import { components, internal } from "../_generated/api";
+import { components } from "../_generated/api";
 import { supportAgent } from "../system/ai/agents/supportAgent";
 import { paginationOptsValidator } from "convex/server";
 import { saveMessage } from "@convex-dev/agent";
+import { generateText } from "ai";
+import { google } from "@ai-sdk/google";
+import { OPERATOR_MESSAGE_ENHANCEMENT_PROMPT } from "../../constant";
 
 export const create = mutation({
   args: {
@@ -45,6 +48,12 @@ export const create = mutation({
       throw new ConvexError({
         code: "BAD_REQUEST",
         message: "Conversation resolved"
+      });
+    }
+
+    if(conversation.status === "unresolved") {
+      await ctx.db.patch(args.conversationId, {
+        status: "escalated"
       });
     }
 
@@ -102,5 +111,45 @@ export const getMany = query({
       paginationOpts: args.paginationOpts
     });
     return paginated;
+  }
+});
+
+export const enhanceResponse = action({
+  args: {
+    prompt: v.string()
+  },
+  handler: async (ctx,args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Identity not found"
+      });
+    }
+
+    const orgId = identity.orgId as string;
+    if (!orgId) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Organization not found"
+      });
+    }
+
+    const response = await generateText({
+      model: google("gemini-2.0-flash"),
+      messages: [
+        {
+          role: "system",
+          content: OPERATOR_MESSAGE_ENHANCEMENT_PROMPT
+        }, 
+        {
+          role: "user",
+          content: args.prompt
+        }
+      ],
+      
+    });
+
+    return response.text;
   }
 })
