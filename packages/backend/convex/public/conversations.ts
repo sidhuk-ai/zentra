@@ -85,7 +85,7 @@ export const getMany = query({
                     _id: conversation._id,
                     creationTime: conversation._creationTime,
                     status: conversation.status,
-                    organizationId: conversation.threadId, // This might be a typo, maybe conversation.organizationId?
+                    organizationId: conversation.organizationId,
                     lastMessage: lastMessage
                 };
             })
