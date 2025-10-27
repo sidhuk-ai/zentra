@@ -55,31 +55,43 @@ export const getMany = query({
 
         // Needs optimization
         const conversations = await ctx.db.query("conversation")
-        .withIndex("by_contact_session_id", (q) => q.eq("contactSessionId", args.contactSessionId))
-        .order("desc").paginate(args.paginationOpts);
+            .withIndex("by_contact_session_id", (q) => q.eq("contactSessionId", args.contactSessionId))
+            .order("desc").paginate(args.paginationOpts);
 
+        // --- START OF FIX --- INFO: USE OF AI FOR THE "EMPTY MESSAGE" BUG
         const conversationWithLastMessage = await Promise.all(
             conversations.page.map(async (conversation) => {
-                let lastMessage:MessageDoc | null = null;
+                let lastMessage: MessageDoc | null = null; // 'MessageDoc' type from your agent
 
-                const message = await supportAgent.listMessages(ctx, {
+                // 1. Fetch the last 5 messages (or more, if needed)
+                const messages = await supportAgent.listMessages(ctx, {
                     threadId: conversation.threadId,
-                    paginationOpts: { numItems: 1, cursor: null }
+                    // Fetch a few, not just 1
+                    paginationOpts: { numItems: 5, cursor: null }
                 });
 
-                if(message.page.length > 0) {
-                    lastMessage = message.page[0] ?? null;
+                // 2. Find the *first* (most recent) message that is 'user' or 'assistant'
+                //    (Assuming MessageDoc has the shape from your logs)
+                const lastVisibleMessage = messages.page.find(msg =>
+                    msg.message?.role === "user" || msg.message?.role === "assistant"
+                );
+
+                // 3. Assign it, otherwise it stays null
+                if (lastVisibleMessage) {
+                    lastMessage = lastVisibleMessage;
                 }
 
                 return {
                     _id: conversation._id,
                     creationTime: conversation._creationTime,
                     status: conversation.status,
-                    organizationId: conversation.threadId,
+                    organizationId: conversation.threadId, // This might be a typo, maybe conversation.organizationId?
                     lastMessage: lastMessage
                 };
             })
         );
+
+        // --- END OF FIX ---
 
         return {
             ...conversations,

@@ -38,7 +38,7 @@ export const create = mutation({
         message: "Conversations not found"
       });
     }
-    if(conversation.organizationId !== orgId) {
+    if (conversation.organizationId !== orgId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "Invalid Organization ID"
@@ -51,7 +51,7 @@ export const create = mutation({
       });
     }
 
-    if(conversation.status === "unresolved") {
+    if (conversation.status === "unresolved") {
       await ctx.db.patch(args.conversationId, {
         status: "escalated"
       });
@@ -91,26 +91,40 @@ export const getMany = query({
       });
     }
 
-    const conversation = await ctx.db.query("conversation").withIndex("by_thread_id",(q) => q.eq("threadId",args.threadId)).unique();
-    if(!conversation) {
+    const conversation = await ctx.db.query("conversation").withIndex("by_thread_id", (q) => q.eq("threadId", args.threadId)).unique();
+    if (!conversation) {
       throw new ConvexError({
         code: "NOT_FOUND",
         message: "No conversation found"
       });
     }
 
-    if(conversation.organizationId !== orgId) {
+    if (conversation.organizationId !== orgId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "Invalid Organization ID"
       })
     }
+    // --- START OF FIX --- INFO: USE OF AI FOR THE "EMPTY MESSAGE" BUG
 
-    const paginated = await supportAgent.listMessages(ctx, {
+    // 1. Get the paginated list, which includes 'tool' messages
+    const paginatedMessages = await supportAgent.listMessages(ctx, {
       threadId: args.threadId,
       paginationOpts: args.paginationOpts
     });
-    return paginated;
+
+    // 2. Filter the 'page' array to only include visible messages
+    const visibleMessages = paginatedMessages.page.filter(msg =>
+      msg.message?.role === "user" || msg.message?.role === "assistant"
+    );
+
+    // 3. Return the pagination object, but with the *filtered* page
+    return {
+      ...paginatedMessages, // This keeps 'isDone' and 'continueCursor'
+      page: visibleMessages
+    };
+
+    // --- END OF FIX ---
   }
 });
 
@@ -118,7 +132,7 @@ export const enhanceResponse = action({
   args: {
     prompt: v.string()
   },
-  handler: async (ctx,args) => {
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) {
       throw new ConvexError({
@@ -141,13 +155,13 @@ export const enhanceResponse = action({
         {
           role: "system",
           content: OPERATOR_MESSAGE_ENHANCEMENT_PROMPT
-        }, 
+        },
         {
           role: "user",
           content: args.prompt
         }
       ],
-      
+
     });
 
     return response.text;

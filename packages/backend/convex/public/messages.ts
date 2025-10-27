@@ -6,6 +6,7 @@ import { paginationOptsValidator } from "convex/server";
 import { resolveConversation } from "../system/ai/tools/resolveConversation";
 import { escalateConversation } from "../system/ai/tools/escalateConversation";
 import { saveMessage } from "@convex-dev/agent";
+import { search } from "../system/ai/tools/search";
 
 export const create = action({
   args: {
@@ -48,12 +49,6 @@ export const create = action({
     const shouldTriggerAgent = conversation.status === "unresolved";
 
     if (shouldTriggerAgent) {
-      // console.log("AI Trigger Attempt", {
-      //   threadId: args.threadId,
-      //   prompt: args.prompt,
-      //   status: conversation.status,
-      //   time: Date.now()
-      // });
       await supportAgent.generateText(ctx,
         {
           threadId: args.threadId
@@ -62,19 +57,12 @@ export const create = action({
           prompt: args.prompt,
           tools: {
             resolveConversation,
-            escalateConversation
+            escalateConversation,
+            search
           }
         }
       );
-      // console.log("AI Trigger Attempt", {
-      //   threadId: args.threadId,
-      //   prompt: args.prompt,
-      //   status: conversation.status,
-      //   time: Date.now(),
-      //   response: response.text
-      // });
     } else {
-      // console.log("Shouldn't reach here");
       await saveMessage(ctx, components.agent, {
         threadId: args.threadId,
         prompt: args.prompt
@@ -102,6 +90,13 @@ export const getMany = query({
       threadId: args.threadId,
       paginationOpts: args.paginationOpts
     });
-    return paginated;
+
+    // THIS IS THE FIX OF EMPTY MESSAGES IN THE CHAT BUG( GREAT HELP BY AI )
+    const visibleMessages = paginated.page.filter((msg) => msg.message?.role === "user" || msg.message?.role === "assistant");
+
+    return {
+      ...paginated,
+      page: visibleMessages
+    };
   }
 })

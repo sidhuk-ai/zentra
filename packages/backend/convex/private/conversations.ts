@@ -9,7 +9,7 @@ export const getOne = query({
     args: {
         conversationId: v.id("conversation")
     },
-    handler: async (ctx,args) => {
+    handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
 
         if (identity === null) {
@@ -28,14 +28,14 @@ export const getOne = query({
         }
 
         const conversation = await ctx.db.get(args.conversationId);
-        if(!conversation) {
+        if (!conversation) {
             throw new ConvexError({
                 code: "NOT_FOUND",
                 message: "Conversation not found"
             })
         }
 
-        if(conversation.organizationId !== orgId) {
+        if (conversation.organizationId !== orgId) {
             throw new ConvexError({
                 code: "UNAUTHORIZED",
                 message: "Invalid organization ID"
@@ -43,7 +43,7 @@ export const getOne = query({
         }
 
         const contactSession = await ctx.db.get(conversation.contactSessionId);
-        if(!contactSession) {
+        if (!contactSession) {
             throw new ConvexError({
                 code: "NOT_FOUND",
                 message: "Contact Sesion not found"
@@ -66,7 +66,7 @@ export const updateStatus = mutation({
             v.literal("escalated")
         )
     },
-    handler: async (ctx,args) => {
+    handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
 
         if (identity === null) {
@@ -85,21 +85,21 @@ export const updateStatus = mutation({
         }
 
         const conversation = await ctx.db.get(args.conversationId);
-        if(!conversation) {
+        if (!conversation) {
             throw new ConvexError({
                 code: "NOT_FOUND",
                 message: "Conversation not found"
             })
         }
 
-        if(conversation.organizationId !== orgId) {
+        if (conversation.organizationId !== orgId) {
             throw new ConvexError({
                 code: "UNAUTHORIZED",
                 message: "Invalid organization ID"
             })
         }
 
-        await ctx.db.patch(args.conversationId,{
+        await ctx.db.patch(args.conversationId, {
             status: args.status
         });
     }
@@ -138,14 +138,14 @@ export const getMany = query({
 
         if (args.status) {
             conversations = await ctx.db.query("conversation")
-            .withIndex(
-                "by_status_and_organization_id",
-                (q) => q.eq("status", args.status as Doc<"conversation">["status"]).eq("organizationId", orgId)
-            ).order("desc").paginate(args.paginationOpts);
+                .withIndex(
+                    "by_status_and_organization_id",
+                    (q) => q.eq("status", args.status as Doc<"conversation">["status"]).eq("organizationId", orgId)
+                ).order("desc").paginate(args.paginationOpts);
         } else {
             conversations = await ctx.db.query("conversation")
-            .withIndex("by_organization_id", (q) => q.eq("organizationId", orgId))
-            .order("desc").paginate(args.paginationOpts);
+                .withIndex("by_organization_id", (q) => q.eq("organizationId", orgId))
+                .order("desc").paginate(args.paginationOpts);
         }
 
         const conversationWithAdditionalData = await Promise.all(
@@ -153,16 +153,26 @@ export const getMany = query({
                 let lastMessage: MessageDoc | null = null;
 
                 const contactSession = await ctx.db.get(conversation.contactSessionId);
-                if(!contactSession) return null;
+                if (!contactSession) return null;
+                // --- START OF FIX --- INFO: USE OF AI FOR THE "EMPTY MESSAGE" BUG
 
-                const messages = await supportAgent.listMessages(ctx,{
+                // 1. Fetch the last 5 messages (or more)
+                const messages = await supportAgent.listMessages(ctx, {
                     threadId: conversation.threadId,
-                    paginationOpts: { numItems: 1, cursor: null }
+                    paginationOpts: { numItems: 5, cursor: null }
                 });
-                if(messages.page.length > 0) {
-                    lastMessage = messages.page[0] ?? null;
+
+                // 2. Find the *first* (most recent) message that is 'user' or 'assistant'
+                const lastVisibleMessage = messages.page.find(msg =>
+                    msg.message?.role === "user" || msg.message?.role === "assistant"
+                );
+
+                // 3. Assign it, otherwise it stays null
+                if (lastVisibleMessage) {
+                    lastMessage = lastVisibleMessage;
                 }
 
+                // --- END OF FIX ---
                 return {
                     ...conversation,
                     lastMessage,
