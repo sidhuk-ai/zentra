@@ -178,7 +178,7 @@ export const getMany = query({
     return {
       page: collected,
       isDone,
-      continueCursor,
+      continueCursor: continueCursor ?? "",
     };
     // --- END OF FIX ---
   }
