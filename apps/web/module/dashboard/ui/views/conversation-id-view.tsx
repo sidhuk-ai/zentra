@@ -30,6 +30,7 @@ import { useState } from "react";
 import { useInfiniteScroll } from "@workspace/ui/hooks/use-infinite-scroll";
 import { InfinteScrollTrigger } from "@workspace/ui/components/infinte-scroll-trigger";
 import { ConversationIdViewSkeleton } from "@workspace/ui/components/loading-skeleton";
+import { cn } from "@workspace/ui/lib/utils";
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
@@ -165,7 +166,7 @@ export const ConversationIdView = ({
               from={message.role === "user" ? "assistant" : "user"}
               key={message.id}
             >
-              <MessageContent>
+              <MessageContent className={cn(message.role === "assistant" && "!bg-secondary !text-foreground")}>
                 <Response>{message.text}</Response>
               </MessageContent>
               {message.role === "user" && (
