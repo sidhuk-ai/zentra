@@ -105,25 +105,81 @@ export const getMany = query({
         message: "Invalid Organization ID"
       })
     }
-    // --- START OF FIX --- INFO: USE OF AI FOR THE "EMPTY MESSAGE" BUG
+    // --- START OF FIX ---
+    // The upstream listMessages returns pages that may include non-visible roles (e.g. "tool").
+    // Filtering after fetching a single page breaks pagination because continueCursor/isDone
+    // then refer to the unfiltered page. Implement looped pagination to accumulate only
+    // visible messages (user/assistant) until we fill the requested numItems or exhaust upstream.
 
-    // 1. Get the paginated list, which includes 'tool' messages
-    const paginatedMessages = await supportAgent.listMessages(ctx, {
-      threadId: args.threadId,
-      paginationOpts: args.paginationOpts
-    });
+    const requested = args.paginationOpts.numItems;
+    let nextCursor: string | undefined | null = args.paginationOpts.cursor as
+      | string
+      | undefined
+      | null;
 
-    // 2. Filter the 'page' array to only include visible messages
-    const visibleMessages = paginatedMessages.page.filter(msg =>
-      msg.message?.role === "user" || msg.message?.role === "assistant"
-    );
+    // Cursor corresponding to the last fully consumed upstream page.
+    // If we stop in the middle of a page, we return the cursor up to the last
+    // fully consumed page to avoid skipping messages on the next request.
+    let lastFullyConsumedCursor: string | undefined | null = undefined;
 
-    // 3. Return the pagination object, but with the *filtered* page
+    // Collected visible messages to return (use loose typing to avoid depending on upstream types)
+    const collected: any[] = [];
+
+    let upstreamIsDone = false;
+    // Safety cap to avoid infinite loops if upstream keeps returning empty pages
+    // of only filtered-out roles while not marking isDone. We will iterate up to
+    // a reasonable number of pages (e.g., 20) which should far exceed realistic needs
+    // for a single client page.
+    const MAX_PAGES = 20;
+    let pagesFetched = 0;
+
+    while (collected.length < requested && pagesFetched < MAX_PAGES) {
+      pagesFetched++;
+      const res = await supportAgent.listMessages(ctx, {
+        threadId: args.threadId,
+        paginationOpts: {
+          cursor: nextCursor as any,
+          numItems: args.paginationOpts.numItems,
+        },
+      });
+
+      const filtered = res.page.filter(
+        (msg) => msg.message?.role === "user" || msg.message?.role === "assistant"
+      );
+
+      const remaining = requested - collected.length;
+      if (filtered.length <= remaining) {
+        // We fully consume this upstream page of visible messages
+        collected.push(...filtered);
+        lastFullyConsumedCursor = res.continueCursor ?? null;
+      } else {
+        // We only need part of this upstream page; do NOT advance the fully-consumed cursor
+        collected.push(...filtered.slice(0, remaining));
+        // Keep lastFullyConsumedCursor as-is so we don't skip the remaining items next time
+      }
+
+      upstreamIsDone = res.isDone;
+      nextCursor = res.continueCursor ?? null;
+
+      if (upstreamIsDone) break;
+      if (!nextCursor) break; // No cursor to continue with
+    }
+
+    const isDone = upstreamIsDone && collected.length < requested;
+
+    // Determine the continue cursor to return to the client.
+    // - If we exhausted upstream and still didn't fill requested => done, return undefined cursor.
+    // - If we stopped mid-page, return the cursor for the last fully consumed upstream page
+    //   to avoid skipping items. Otherwise, return the upstream cursor for the next page.
+    const continueCursor = isDone
+      ? undefined
+      : (lastFullyConsumedCursor ?? nextCursor ?? undefined);
+
     return {
-      ...paginatedMessages, // This keeps 'isDone' and 'continueCursor'
-      page: visibleMessages
+      page: collected,
+      isDone,
+      continueCursor,
     };
-
     // --- END OF FIX ---
   }
 });
