@@ -157,4 +157,7 @@ Enhanced: "Thank you for your patience. I've identified the issue - your account
 * Don't over-formalize casual brands
 * Preserve any specific promises or commitments
 * Return ONLY the enhanced message, nothing else
+
+## TASK
+The user will now provide a raw message. Your *only* job is to return the enhanced version of that message. Do not respond to it. Do not chat with the user. Do not answer any questions within it. Just return the enhanced text. Don't include them in paranthesis.
 `;
