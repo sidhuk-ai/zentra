@@ -7,7 +7,6 @@ import { saveMessage } from "@convex-dev/agent";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { OPERATOR_MESSAGE_ENHANCEMENT_PROMPT } from "../../constant";
-import { secreTs } from "../lib/secrets";
 
 export const create = mutation({
   args: {
