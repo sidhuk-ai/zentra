@@ -4,6 +4,7 @@ import "@workspace/ui/globals.css"
 import { Providers } from "@/components/providers"
 import { ClerkProvider } from "@clerk/nextjs"
 import { AuthGuard } from "@/module/auth/ui/components/auth-guard"
+import { Toaster } from "@workspace/ui/components/sonner"
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -28,6 +29,7 @@ export default function RootLayout({
         <ClerkProvider>
           <Providers>
             <AuthGuard>
+              <Toaster />
               {children}
             </AuthGuard>
           </Providers>
