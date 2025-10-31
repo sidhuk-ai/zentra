@@ -1,7 +1,7 @@
+import { VapiView } from "@/module/plugins/ui/views/vapi-view";
+
 export default function Page() {
     return (
-        <>
-        <h1>Plugins Page</h1>
-        </>
+        <VapiView />
     )
 }
