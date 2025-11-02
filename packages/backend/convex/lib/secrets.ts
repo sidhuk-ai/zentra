@@ -18,11 +18,11 @@ if (!projectId) {
  * Tries to parse the secret as JSON. If it fails, returns the raw string.
  * Returns undefined if the secret is not found.
  */
-export async function getSecret(secretName: string): Promise<any | undefined> {
+export async function getSecret<T = any>(secretName: string): Promise<T | undefined> {
   try {
     const client = await getInfisicalClient();
 
-    const secret = await client.secrets().getSecret({
+    const secret = await client.secrets().getSecret({ // Using your client.secrets.getSecret syntax
       projectId: projectId,
       environment: environment,
       secretName: secretName // Use the full string as the name
@@ -31,15 +31,17 @@ export async function getSecret(secretName: string): Promise<any | undefined> {
     const secretValue = secret.secretValue;
 
     try {
-      // Try to parse the value as JSON
-      return JSON.parse(secretValue);
+      // Try to parse the value as JSON and cast it to the generic type T
+      return JSON.parse(secretValue) as T;
     } catch (e) {
-      // If it's not valid JSON, just return the raw string
-      return secretValue;
+      // If it's not valid JSON (e.g., a raw string), 
+      // return the raw string, cast to T.
+      // This allows getSecret<string>('...') to work as expected.
+      return secretValue as T;
     }
 
   } catch (error) {
-    // *FIXED*: Reliably check for the 404 error
+    // Reliably check for the 404 error
     if (error instanceof Error && error.message.includes("StatusCode=404")) {
       console.warn(`Secret "${secretName}" at path "${secretPath}" not found.`);
       return undefined;
