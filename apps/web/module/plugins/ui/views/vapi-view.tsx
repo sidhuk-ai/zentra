@@ -27,6 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Label } from "@workspace/ui/components/label";
 import { Input } from "@workspace/ui/components/input";
 import { Button } from "@workspace/ui/components/button";
+import { VapiConnectedView } from "../components/vapi-connected-view";
 
 const formSchema = z.object({
   publicApiKey: z.string().min(1, "Public API key is required"),
@@ -56,6 +57,42 @@ const vapiFeatures: Feature[] = [
   },
 ];
 
+const VapiPluginRemoveForm = ({
+  open,
+  setOpen,
+}: {
+  open: boolean;
+  setOpen: (value: boolean) => void;
+}) => {
+  const removePlugin = useMutation(api.private.plugins.remove);
+
+  const onSubmit = async () => {
+    try {
+      await removePlugin({
+        service: "vapi",
+      });
+      setOpen(false);
+      toast.success("Disconnected Vapi successfully.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Something went wrong while disconnecting Vapi. Try again after some time");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="border-border">
+        <DialogHeader>
+          <DialogTitle>Disconnect vapi</DialogTitle>
+        </DialogHeader>
+        <DialogDescription>Wanna disconnect?</DialogDescription>
+        <DialogFooter>
+          <Button onClick={onSubmit} variant={"destructive"}>Disconnect</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 const VapiPluginForm = ({
   open,
   setOpen,
@@ -112,7 +149,7 @@ const VapiPluginForm = ({
                     <Input
                       {...field}
                       placeholder="Your public API key"
-                      type="text"
+                      type="password"
                     />
                   </FormControl>
                   <FormMessage />
@@ -129,7 +166,7 @@ const VapiPluginForm = ({
                     <Input
                       {...field}
                       placeholder="Your private API key"
-                      type="text"
+                      type="password"
                     />
                   </FormControl>
                   <FormMessage />
@@ -155,7 +192,7 @@ export const VapiView = () => {
   const [connectOpen, setConnectOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
 
-  const handleSubmit = () => {
+  const toggleDialog = () => {
     if (vapiPlugin) {
       setRemoveOpen(true);
     } else {
@@ -165,6 +202,7 @@ export const VapiView = () => {
   return (
     <>
       <VapiPluginForm open={connectOpen} setOpen={setConnectOpen} />
+      <VapiPluginRemoveForm open={removeOpen} setOpen={setRemoveOpen} />
       <div className="flex min-h-screen flex-col p-8">
         <div className="mx-auto w-full max-w-screen-md">
           <div className="space-y-2">
@@ -175,14 +213,14 @@ export const VapiView = () => {
           </div>
           <div className="mt-8">
             {!!vapiPlugin ? (
-              <p>Connected!!!!</p>
+              <VapiConnectedView onDisconnect={toggleDialog} />
             ) : (
               <PluginCard
                 serviceImage="/vapi.svg"
                 serviceName="Vapi"
                 features={vapiFeatures}
                 isDisabled={vapiPlugin === undefined}
-                onSubmit={handleSubmit}
+                onSubmit={toggleDialog}
               />
             )}
           </div>
