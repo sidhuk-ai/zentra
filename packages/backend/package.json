@@ -23,6 +23,7 @@
     "@convex-dev/agent": "^0.2.10",
     "@convex-dev/rag": "^0.5.4",
     "@infisical/sdk": "^4.0.6",
+    "@vapi-ai/server-sdk": "^0.10.2",
     "ai": "^5.0.72",
     "convex": "^1.28.0",
     "convex-helpers": "^0.1.104",
