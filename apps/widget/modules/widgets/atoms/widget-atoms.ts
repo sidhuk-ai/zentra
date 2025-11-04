@@ -2,7 +2,7 @@ import { atom } from "jotai";
 import { WidgetScreen } from "@/modules/widgets/types";
 import { atomFamily, atomWithStorage } from "jotai/utils";
 import { CONTACT_SESSION_KEY } from "../constants";
-import { Id } from "@workspace/backend/_generated/dataModel";
+import { Id, Doc } from "@workspace/backend/_generated/dataModel";
 
 export const screenAtom = atom<WidgetScreen>("loading");
 export const organizationIdAtom = atom<string | null>(null);
@@ -14,3 +14,8 @@ export const errorMessageAtom = atom<string | null>(null);
 export const loadingMessageAtom = atom<string | null>(null);
 
 export const conversationIdAtom = atom<Id<"conversation"> | null>(null);
+
+export const widgetSettingsAtom = atom<Doc<"widgetSettings"> | null>(null);
+
+export const vapiSecretsAtom = atom<{ publicApiKey: string } | null>(null);
+export const hasVapiSecretsAtom = atom((get) => get(vapiSecretsAtom) !== null);
