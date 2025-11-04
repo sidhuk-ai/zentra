@@ -9,7 +9,7 @@ function ChatbotPageContent() {
   const organizationId = searchParams.get("organizationId") || "";
 
   return (
-    <div className="flex items-center justify-center min-h-svh">
+    <div className="flex items-center justify-center w-full h-full">
       <ChatbotWidget organizationId={organizationId} />
     </div>
   );
