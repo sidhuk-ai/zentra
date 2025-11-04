@@ -25,7 +25,12 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { Button } from "@workspace/ui/components/button";
-import { useAction, useMutation, usePaginatedQuery } from "convex/react";
+import {
+  useAction,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
 import { api } from "@workspace/backend/_generated/api";
 import { Doc } from "@workspace/backend/_generated/dataModel";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -33,9 +38,12 @@ import {
   contactSessionIdAtomFamily,
   conversationIdAtom,
   errorMessageAtom,
+  hasVapiSecretsAtom,
   loadingMessageAtom,
   organizationIdAtom,
   screenAtom,
+  vapiSecretsAtom,
+  widgetSettingsAtom,
 } from "@/modules/widgets/atoms/widget-atoms";
 import { WidgetChatScreen } from "@/modules/widgets/screens/widget-chat-screen";
 import { GreetingsHeader } from "./greetings-header";
@@ -44,7 +52,12 @@ import { formatDistanceToNow } from "date-fns";
 import { StatusIcon } from "@workspace/ui/components/status-icon";
 import { useInfiniteScroll } from "@workspace/ui/hooks/use-infinite-scroll";
 import { InfinteScrollTrigger } from "@workspace/ui/components/infinte-scroll-trigger";
-import { LoadingSkeleton, WidgetViewLoadingSkeleton } from "@workspace/ui/components/loading-skeleton";
+import {
+  LoadingSkeleton,
+  WidgetViewLoadingSkeleton,
+} from "@workspace/ui/components/loading-skeleton";
+import { WidgetVoiceScreen } from "../screens/widget-voice-screen";
+import { WidgetContactScreen } from "../screens/widget-contact-screen";
 
 type InitStep = "org" | "session" | "settings" | "vapi" | "done";
 const formSchema = z.object({
@@ -67,11 +80,11 @@ export function ChatbotWidget({
     error: <ErrorScreen />,
     loading: <LoadingScreen organizationId={organizationId} />,
     auth: <AuthScreen />,
-    voice: <p>TODO</p>,
+    voice: <WidgetVoiceScreen />,
     inbox: <InboxView />,
     selection: <HomeView />,
     chat: <WidgetChatScreen />,
-    contact: <p>TODO</p>,
+    contact: <WidgetContactScreen />,
   };
 
   return (
@@ -79,7 +92,7 @@ export function ChatbotWidget({
       aria-label="AI Support Chatbot Widget"
       className={cn(
         // container
-        "w-full min-h-svh max-w-screen rounded-2xl border border-border bg-card text-card-foreground shadow-lg",
+        "h-full w-full border border-border bg-card text-card-foreground shadow-lg",
         "flex flex-col overflow-hidden",
         className
       )}
@@ -281,6 +294,8 @@ function LoadingScreen({ organizationId }: { organizationId: string }) {
   const setLoadingMsg = useSetAtom(loadingMessageAtom);
   const setScreen = useSetAtom(screenAtom);
   const setOrganizationId = useSetAtom(organizationIdAtom);
+  const setWidgetSettings = useSetAtom(widgetSettingsAtom);
+  const setVapiSecrets = useSetAtom(vapiSecretsAtom);
   const contactSessionId = useAtomValue(
     contactSessionIdAtomFamily(organizationId)
   );
@@ -332,20 +347,23 @@ function LoadingScreen({ organizationId }: { organizationId: string }) {
     setLoadingMsg("Finding contact session ID...");
 
     if (!contactSessionId) {
+      console.log("contact session id nahi hai");
       setSessionValid(false);
-      setStep("done");
+      setStep("settings");
       return;
     }
 
     setLoadingMsg("Validating session...");
     validateContactSession({ contactSessionId })
       .then((result) => {
+        console.log("result hai: ", result.valid);
         setSessionValid(result.valid);
-        setStep("done");
+        setStep("settings");
       })
       .catch(() => {
+        console.log("error aa gaya session Validate karte wakt");
         setSessionValid(false);
-        setStep("done");
+        setStep("settings");
       });
   }, [
     step,
@@ -353,12 +371,59 @@ function LoadingScreen({ organizationId }: { organizationId: string }) {
     setLoadingMsg,
     validateContactSession,
     setSessionValid,
+    setStep
+  ]);
+
+  // Step 3 Widgets settings load karna
+  const widgetSettings = useQuery(
+    api.public.widgetSettings.getByOrganizationId,
+    organizationId
+      ? {
+          organizationId,
+        }
+      : "skip"
+  );
+
+  React.useEffect(() => {
+    if (step !== "settings") return;
+
+    setLoadingMsg("Loading widget settings...");
+
+    if (widgetSettings !== undefined) {
+      setWidgetSettings(widgetSettings);
+      setStep("vapi");
+    }
+  }, [step, widgetSettings, setWidgetSettings, setLoadingMsg]);
+
+  // Step 4 Get Vapi secrets
+  const getVapiSecrets = useAction(api.public.secrets.getVapiSecrets);
+  React.useEffect(() => {
+    if (step !== "vapi" && !organizationId) return;
+
+    setLoadingMsg("Loading voice features");
+    getVapiSecrets({ organizationId })
+      .then((secrets) => {
+        setVapiSecrets(secrets);
+        setStep("done");
+      })
+      .catch(() => {
+        setVapiSecrets(null);
+        setStep("done");
+      });
+  }, [
+    step,
+    organizationId,
+    getVapiSecrets,
+    setVapiSecrets,
+    setLoadingMsg,
+    setStep
   ]);
 
   React.useEffect(() => {
-    if (step !== "done") return;
+    if (step !== "settings") return;
 
     const hasSessionId = contactSessionId && sessionValid;
+    console.log(hasSessionId, contactSessionId, sessionValid);
     setScreen(hasSessionId ? "selection" : "auth");
   }, [step, contactSessionId, sessionValid, setScreen]);
 
@@ -378,6 +443,8 @@ function HomeView() {
   const setScreen = useSetAtom(screenAtom);
   const setConversationId = useSetAtom(conversationIdAtom);
   const setErrorMsg = useSetAtom(errorMessageAtom);
+  const widgetSettings = useAtomValue(widgetSettingsAtom);
+  const hasVapiSecrets = useAtomValue(hasVapiSecretsAtom);
 
   const createConversations = useMutation(api.public.conversations.create);
 
@@ -385,8 +452,8 @@ function HomeView() {
 
   const habdleNewConversations = async () => {
     if (!organizationId) {
-      setErrorMsg("Missing organization ID");
       setScreen("error");
+      setErrorMsg("Missing organization ID");
       return;
     }
 
@@ -404,7 +471,7 @@ function HomeView() {
 
       setConversationId(conversationId);
       setScreen("chat");
-    } catch (error) {
+    } catch {
       setScreen("auth");
     } finally {
       setIsPending(false);
@@ -425,22 +492,26 @@ function HomeView() {
           onClick={habdleNewConversations}
           disabled={isPending}
         />
-        <ActionButton
-          icon={<Mic className="h-5 w-5" aria-hidden="true" />}
-          label="Start Voice Call"
-          description="Speak to our AI for faster resolution"
-          onClick={() => {
-            console.log("Start Voice Call clicked");
-          }}
-        />
-        <ActionButton
-          icon={<PhoneCall className="h-5 w-5" aria-hidden="true" />}
-          label="Call Us"
-          description="Reach our support team by phone"
-          onClick={() => {
-            console.log("Call Us clicked");
-          }}
-        />
+        {hasVapiSecrets && widgetSettings?.vapiSettings.assistantId && (
+          <ActionButton
+            icon={<Mic className="h-5 w-5" aria-hidden="true" />}
+            label="Start Voice Call"
+            description="Speak to our AI for faster resolution"
+            onClick={() => {
+              setScreen("voice");
+            }}
+          />
+        )}
+        {hasVapiSecrets && widgetSettings?.vapiSettings.phoneNumber && (
+          <ActionButton
+            icon={<PhoneCall className="h-5 w-5" aria-hidden="true" />}
+            label="Call Us"
+            description="Reach our support team by phone"
+            onClick={() => {
+              setScreen("contact")
+            }}
+          />
+        )}
       </div>
     </div>
   );
