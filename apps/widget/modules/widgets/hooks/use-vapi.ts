@@ -1,6 +1,8 @@
 "use client";
 import Vapi from "@vapi-ai/web";
+import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import { vapiSecretsAtom, widgetSettingsAtom } from "../atoms/widget-atoms";
 
 interface TranscriptMessage {
     role: "user" | "assistant",
@@ -8,6 +10,8 @@ interface TranscriptMessage {
 }
 
 export const useVapi = () => {
+    const vapiSecrets = useAtomValue(vapiSecretsAtom);
+    const widgetSettings = useAtomValue(widgetSettingsAtom);
     const [vapi, setVapi] = useState<Vapi | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
@@ -15,8 +19,10 @@ export const useVapi = () => {
     const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
 
     useEffect(() => {
-        // Sirf testing ke liye API key publicly daali hai baad mei BYOK
-        const vapiInstance = new Vapi("daf0c17d-54f9-4bc9-aeb6-a4ed3a42e623");
+        if(!vapiSecrets) return;
+
+        // Sirf testing ke liye API key publicly daali hai baad mei BYOK: DONE ✅
+        const vapiInstance = new Vapi(vapiSecrets.publicApiKey);
         setVapi(vapiInstance);
 
         vapiInstance.on("call-start",() => {
@@ -61,9 +67,11 @@ export const useVapi = () => {
     }, []);
 
     const startCall = () => {
+        if(!vapiSecrets || !widgetSettings?.vapiSettings.assistantId) return;
+
         setIsConnecting(true);
         if(vapi) {
-            vapi.start("4a26fd9d-fec4-44a2-94db-ba8b73fd7ecc");
+            vapi.start(widgetSettings.vapiSettings.assistantId);
         }
     };
 
