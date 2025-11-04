@@ -87,7 +87,7 @@ const VapiPluginRemoveForm = ({
         </DialogHeader>
         <DialogDescription>Wanna disconnect?</DialogDescription>
         <DialogFooter>
-          <Button onClick={onSubmit} variant={"destructive"}>Disconnect</Button>
+          <Button className="cursor-pointer" onClick={onSubmit} variant={"destructive"}>Disconnect</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
