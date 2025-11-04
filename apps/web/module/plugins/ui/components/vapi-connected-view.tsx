@@ -91,11 +91,11 @@ export const VapiConnectedView = ({ onDisconnect }: VapiConnectedViewProps) => {
           value={activeTab}
         >
           <TabsList className="grid h-12 w-full grid-cols-2 p-0">
-            <TabsTrigger value="phone-numbers" className="h-full rounded-none">
+            <TabsTrigger value="phone-numbers" className="h-full rounded-none cursor-pointer">
               <PhoneIcon />
               Phone
             </TabsTrigger>
-            <TabsTrigger value="assistants" className="h-full rounded-none">
+            <TabsTrigger value="assistants" className="h-full rounded-none cursor-pointer">
               <BotIcon />
               AI assistants
             </TabsTrigger>

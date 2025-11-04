@@ -52,7 +52,7 @@ export const VapiAssistantsContent = () => {
             }
 
             return assistants.map((assistant) => (
-              <TableRow className="hover:bg-muted/50" key={assistant.id}>
+              <TableRow className="hover:bg-muted/50 border-b-border" key={assistant.id}>
                 <TableCell className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <BotIcon className="size-4 text-muted-foreground" />
