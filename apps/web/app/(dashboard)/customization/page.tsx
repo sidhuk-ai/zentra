@@ -1,7 +1,7 @@
+import { CustomizationView } from "@/module/customization/ui/views/customization-view";
+
 export default function Page() {
     return (
-        <>
-        <h1>Widgets Customization Page</h1>
-        </>
+        <CustomizationView />
     )
 }
