@@ -121,7 +121,7 @@ export function ChatbotWidget({
       <nav
         role="tablist"
         aria-label="Widget navigation"
-        className="grid grid-cols-2 border-t border-t-border"
+        className={cn((screen === "selection" || screen === "inbox") ? "grid grid-cols-2 border-t border-t-border" : "hidden" )}
       >
         <TabButton
           icon={<Home className="h-4 w-4" aria-hidden="true" />}
@@ -185,6 +185,7 @@ function AuthScreen() {
   const setContactSessionId = useSetAtom(
     contactSessionIdAtomFamily(organizationId || "")
   );
+  const setScreen = useSetAtom(screenAtom);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -212,14 +213,19 @@ function AuthScreen() {
       currentUrl: window.location.href,
     };
 
-    const contactSessionId = await createContactSession({
-      ...values,
-      organizationId,
-      metadata,
-    });
-    console.log(contactSessionId);
-    setContactSessionId(contactSessionId);
-    console.log(values);
+    try {
+      const contactSessionId = await createContactSession({
+        ...values,
+        organizationId,
+        metadata,
+      });
+      // console.log(contactSessionId);
+      setContactSessionId(contactSessionId);
+      setScreen("selection")
+      // console.log(values);
+    } catch (error) {
+      setScreen("error");
+    }
   };
   return (
     <div className="p-4 space-y-4 w-full">
