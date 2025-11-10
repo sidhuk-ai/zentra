@@ -46,7 +46,15 @@ export const create = action({
       });
     }
 
-    const shouldTriggerAgent = conversation.status === "unresolved";
+    await ctx.runMutation(internal.system.contactSession.refresh, {
+      contactSessionId: args.contactSessionId
+    });
+
+    const subscriptions = await ctx.runQuery(internal.system.subscriptions.getByOrganizationId, {
+      organizationId: conversation.organizationId
+    })
+
+    const shouldTriggerAgent = conversation.status === "unresolved" && subscriptions?.status === "active";
 
     if (shouldTriggerAgent) {
       await supportAgent.generateText(ctx,
