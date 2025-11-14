@@ -28,6 +28,7 @@ import { Label } from "@workspace/ui/components/label";
 import { Input } from "@workspace/ui/components/input";
 import { Button } from "@workspace/ui/components/button";
 import { VapiConnectedView } from "../components/vapi-connected-view";
+import { ConvexError } from "convex/values";
 
 const formSchema = z.object({
   publicApiKey: z.string().min(1, "Public API key is required"),
@@ -75,6 +76,12 @@ const VapiPluginRemoveForm = ({
       toast.success("Disconnected Vapi successfully.");
     } catch (error) {
       console.error(error);
+      if(error instanceof ConvexError) {
+        const errorData = error.data as { code: string; message: string; };
+        toast.error(errorData.code, {
+          description: errorData.message
+        });
+      }
       toast.error("Something went wrong while disconnecting Vapi. Try again after some time");
     }
   };
@@ -122,7 +129,12 @@ const VapiPluginForm = ({
       setOpen(false);
       toast.success("Successfully integrated Vapi");
     } catch (error) {
-      console.error(error);
+      if(error instanceof ConvexError) {
+        const errorData = error.data as { code: string; message: string; };
+        toast.error(errorData.code, {
+          description: errorData.message
+        });
+      }
       toast.error("Something went wrong after submitting secret key values.");
     }
   };
