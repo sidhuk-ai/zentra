@@ -35,6 +35,8 @@ import { Controller, useForm } from "react-hook-form";
 import z from "zod";
 import { Input } from "@workspace/ui/components/input";
 import { Button } from "@workspace/ui/components/button";
+import { ConvexError } from "convex/values";
+import { toast } from "sonner";
 
 interface UploadDialogProps {
   open: boolean;
@@ -95,6 +97,13 @@ export const UploadDialog = ({
       handleCancel();
     } catch (error) {
       console.error(error);
+      if(error instanceof ConvexError) {
+        const errorData = error.data as { code: string; message: string; };
+        toast.error(errorData.code, {
+          description: errorData.message
+        });
+      }
+      toast.error("Something unexpected happened.");
     } finally {
       setIsUploading(false);
     }

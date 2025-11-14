@@ -31,6 +31,8 @@ import { useInfiniteScroll } from "@workspace/ui/hooks/use-infinite-scroll";
 import { InfinteScrollTrigger } from "@workspace/ui/components/infinte-scroll-trigger";
 import { ConversationIdViewSkeleton } from "@workspace/ui/components/loading-skeleton";
 import { cn } from "@workspace/ui/lib/utils";
+import { ConvexError } from "convex/values";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
@@ -69,6 +71,13 @@ export const ConversationIdView = ({
       form.reset();
     } catch (error) {
       console.error(error);
+      if(error instanceof ConvexError) {
+        const errorData = error.data as { code: string; message: string; };
+        toast.error(errorData.code, {
+          description: errorData.message
+        });
+      }
+      toast.error("Something unexpected happened.");
     }
   };
 
@@ -97,6 +106,13 @@ export const ConversationIdView = ({
       });
     } catch (error) {
       console.error(error);
+      if(error instanceof ConvexError) {
+        const errorData = error.data as { code: string; message: string; };
+        toast.error(errorData.code, {
+          description: errorData.message
+        });
+      }
+      toast.error("Something unexpected happened.");
     } finally {
       setIsPendingStatusChange(false);
     }
@@ -127,6 +143,13 @@ export const ConversationIdView = ({
       form.setValue("message", enhancedText);
     } catch (error) {
       console.error(error);
+      if(error instanceof ConvexError) {
+        const errorData = error.data as { code: string; message: string; };
+        toast.error(errorData.code, {
+          description: errorData.message
+        });
+      }
+      toast.error("Something unexpected happened.");
     } finally {
       setIsEnhancing(false);
     }

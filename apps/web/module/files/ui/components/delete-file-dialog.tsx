@@ -5,7 +5,9 @@ import type { PublicFile } from "@workspace/backend/private/files";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { useMutation } from "convex/react";
+import { ConvexError } from "convex/values";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface DeleteFileDialogProps {
   open: boolean;
@@ -33,6 +35,13 @@ export const DeleteFileDialog = ({
       onOpenChange(false);
     } catch (error) {
       console.error(error);
+      if(error instanceof ConvexError) {
+        const errorData = error.data as { code: string; message: string; };
+        toast.error(errorData.code, {
+          description: errorData.message
+        });
+      }
+      toast.error("Something unexpected happened.");
     } finally {
       setIsDeleteing(false);
     }
