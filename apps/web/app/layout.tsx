@@ -34,10 +34,8 @@ export default function RootLayout({
           }}
         >
           <Providers>
-            <AuthGuard>
-              <Toaster richColors />
-              {children}
-            </AuthGuard>
+            <Toaster richColors />
+            {children}
           </Providers>
         </ClerkProvider>
       </body>

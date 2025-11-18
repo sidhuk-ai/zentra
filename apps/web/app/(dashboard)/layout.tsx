@@ -3,8 +3,10 @@ import { DashboardLayout } from "@/module/dashboard/ui/layouts/dashboard-layout"
 
 export default function Layout({ children }:{ children: React.ReactNode }) {
     return (
-        <DashboardLayout>
-            {children}
-        </DashboardLayout>
+        <AuthGuard>
+            <DashboardLayout>
+                {children}
+            </DashboardLayout>
+        </AuthGuard>
     )
 }
