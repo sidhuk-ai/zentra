@@ -10,13 +10,13 @@ export default function IntegrationsSection() {
                 <div className="mx-auto max-w-5xl px-6">
                     <div className="relative mx-auto flex max-w-sm items-center justify-between">
                         <div className="space-y-6">
-                            <IntegrationCard position="left-top">
+                            <IntegrationCard position="left-top" className='z-0'>
                                 <Image src={'/vapi.svg'} alt='Vapi' width={40} height={40} className='h-full w-full' />
                             </IntegrationCard>
-                            <IntegrationCard position="left-middle">
+                            <IntegrationCard position="left-middle" className='z-0'>
                                 <Image src={'/vapi.svg'} alt='Vapi' width={40} height={40} className='h-full w-full' />
                             </IntegrationCard>
-                            <IntegrationCard position="left-bottom">
+                            <IntegrationCard position="left-bottom" className='z-0'>
                                 <Image src={'/vapi.svg'} alt='Vapi' width={40} height={40} className='h-full w-full' />
                             </IntegrationCard>
                         </div>
@@ -34,13 +34,13 @@ export default function IntegrationsSection() {
                             className="absolute inset-1/3 bg-[radial-gradient(var(--dots-color)_1px,transparent_1px)] opacity-50 [--dots-color:black] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] dark:[--dots-color:white]"></div>
 
                         <div className="space-y-6">
-                            <IntegrationCard position="right-top">
+                            <IntegrationCard position="right-top" className='z-0'>
                                 <Image src={'/vapi-light.svg'} alt='Vapi' width={30} height={30} />
                             </IntegrationCard>
-                            <IntegrationCard position="right-middle">
+                            <IntegrationCard position="right-middle" className='z-0'>
                                 <Image src={'/vapi-light.svg'} alt='Vapi' width={30} height={30} />
                             </IntegrationCard>
-                            <IntegrationCard position="right-bottom">
+                            <IntegrationCard position="right-bottom" className='z-0'>
                                 <Image src={'/vapi-light.svg'} alt='Vapi' width={30} height={30} />
                             </IntegrationCard>
                         </div>
@@ -53,7 +53,7 @@ export default function IntegrationsSection() {
                             variant="outline"
                             size="sm"
                             asChild>
-                            <Link href="#">Get Started</Link>
+                            <Link href="/integrations">Get Started</Link>
                         </Button>
                     </div>
                 </div>
